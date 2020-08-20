@@ -12,5 +12,5 @@ Working on 'everyday coding' concept, I have created a retro snake game.
 1. Collision of walls 
    
 ### DEMO
-![Snake Game]()
+![Snake Game](https://github.com/yettsyjk/coreJS/tree/master/img))
 
