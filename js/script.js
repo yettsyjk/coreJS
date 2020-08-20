@@ -1,183 +1,141 @@
-var Game = Game || {};
-var KeyBoard = KeyBoard || {};
-var Component = Component || {};
+const canvas = document.getElementById("myCanvas");
+const context = canvas.getContext("2d");
+canvas.width = 400;
+canvas.height = 450;
 
-/* movement*/
-KeyBoard.Keymap = {
-    37: "left",
-    38: "up",
-    39: "right",
-    40: "down"
+let frames = 0;
+let foodToEat = false;
+const direction = {
+    current: 0,
+    idle: 0,
+    right: 1,
+    down: 2,
+    left: 3,
+    up: 4
 };
-/* events */
-KeyBoard.ControllerEvents = function () {
-    var self = this;
-    this.pressKey = null;
-    this.keymap = KeyBoard.Keymap;
 
-    document.onkeydown = function (e) {
-        self.pressKey = e.which;
-    };
+document.addEventListener("keydown", function (e) {
+    switch (e.keyCode) {
+        case 37://move left
+            if (direction.current != direction.left && direction.current != direction.right) {
+                direction.current = direction.left;
+            }
+            break;
+        case 38://move up
+            if (direction.current != direction.up && direction.current != direction.down) {
+                direction.current = direction.up;
+            }
+            break;
+        case 39://move right
+            if (direction.current != direction.right && direction.current != direction.left) {
+                direction.current = direction.right;
+            }
+            break;
+        case 40://move down
+            if (direction.current != direction.down && direction.current != direction.up) {
+                direction.current = direction.down;
+            }
+            break;
+    }
+});
 
-    this.getKey = function () {
-        return this.keymap[this.pressKey];
-    };
+function getDistance(pointX1, pointY1, pointX2, pointY2) {
+
+
+    let distanceX = pointX2 - pointX1;
+    let distanceY = pointY2 - pointY1;
+    return Math.sqrt(Math.pow(distanceX, 2) + Math.pow(distanceY, 2));
 };
-/* stage */
 
-Component.Stage = function (canvas, conf) {
-    //sets
-    this.keyEvent = new KeyBoard.ControllerEvents();
-    this.width = canvas.width;
-    this.height = canvas.height;
-    this.length = [];
-    this.food = {};
-    this.score = 0;
-    this.direction = "right";
-    this.conf = {
-        cw: 10,
-        size: 5,
-        fps: 1000
-    };
-    if (typeof conf === "object") {
-        for (let key in conf) {
-            if (conf.hasOwnProperty(key)) {
-                this.conf[key] = conf[key];
+const food = {
+    x: canvas.width / 4,
+    y: canvas.height / 4,
+    radius: 10,
+
+    draw: function () {
+        context.beginPath();
+        context.fillStyle = "blue";
+        context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+        context.fill();
+        context.closePath();
+    }
+};
+
+const snake = {
+    snakeRadius: 10,
+    position: [{
+        x: canvas.width / 2,
+        y: canvas.height / 2
+    }],
+    draw: function () {
+        context.fillStyle = "pink";
+        for (let i = 0; i < this.position.length; i++) {
+            let p = this.position[i];
+            context.beginPath();
+            context.arc(p.x, p.y, this.snakeRadius, 0, 2 * Math.PI);
+            context.fill();
+            context.closePath();
+        }
+    },
+    update: function () {
+        if (frames % 6 === 0) {
+            if (foodToEat === true) {
+                this.position.push({
+                    x: this.position[this.position.length - 1].x,
+                    y: this.position[this.position.length - 1].y
+                });
+                foodToEat = false;
+            }
+            //logic on position
+            if (this.position[0].x < 0) {
+                this.position[0].x = canvas.width - 10;
+            }
+            if (this.position[0].x > canvas.width) {
+                this.position[0].x = 10;
+            }
+            if (this.position[0].y < 0) {
+                this.position[0].y = canvas.height - 10;
+            }
+            if (this.position[0].y > canvas.height) {
+                this.position[0].y = 10;
+            }
+            for (let i = this.position.length - 1; i > 0; i--) {
+                if (this.position[0].x === this.position[i].x &&
+                    this.position[0].y === this.position[i].y &&
+                    this.position.length > 2) {
+                    this.position.splice(1);
+                    break;
+                }
+                this.position[i].x = this.position[i - 1].x;
+                this.position[i].y = this.position[i - 1].y;
+            }
+            if (direction.current === direction.right) {
+                this.position[0].x += 20;
+            }
+            if (direction.current === direction.left) {
+                this.position[0].x -= 20;
+            }
+            if (direction.current === direction.up) {
+                this.position[0].y -= 20;
+            }
+            if (direction.current === direction.down) {
+                this.position[0].y += 20;
+            };
+            if (getDistance(food.x, food.y, this.position[0].x, this.position[0].y) <= 2 * food.radius) {
+                food.x = Math.random() * canvas.width;
+                food.y = Math.random() * canvas.height;
+                foodToEat = true;
             }
         }
     }
-};
-/* snake */
-Component.Snake = function (canvas, conf) {
-    /* game stage */
-    this.stage = new Component.Stage(canvas, conf);
+}
 
-    this.initSnake = function () {
-        /* iterate in Snake Conf size */
-        for (let i = 0; i < this.stage.conf.size; i++) {
-            this.stage.length.push({
-                x: i,
-                y: 0
-            });
-        }
-    };
-
-    this.initSnake();//call the snake to initialize
-    /* food*/
-    this.initFood = function () {
-        this.stage.food = {
-            x: Math.round(Math.random() * (this.stage.width = this.stage.conf.cw) / this.stage.conf.cw),
-            y: Math.round(Math.random() * (this.stage.height - this.stage.conf.cw) / this.stage.conf.cw),
-        };
-    };
-    /* initialize food*/
-    this.initFood();
-    /* restart stage */
-    this.restart = function () {
-        this.stage.length = [];
-        this.stage.food = {};
-        this.stage.score = 0;
-        this.stage.direction = "right";
-        this.stage.keyEvent.pressKey = null;
-        this.initSnake();
-        this.initFood();
-    };
-};
-
-/* draw the game */
-
-Game.Draw = function (context, snake) {
-    this.drawStage = function () {
-        let keyPress = snake.stage.keyEvent.getKey();
-        if (typeof (keyPress) != "undefined") {
-            snake.stage.direction = keyPress;
-        }
-        context.fillStyle = "white";
-        context.fillRect(0, 0, snake.stage.width, snake.stage.height);
-
-        /* snake position */
-        var nextx = snake.stage.length[0].x;
-        var nexty = snake.stage.length[0].y;
-
-        /* stage direction and positioning */
-        switch (snake.stage.direction) {
-            case "right":
-                nextx++;
-                break;
-            case "left":
-                nextx--;
-                break;
-            case "up":
-                nexty--;
-                break;
-            case "down":
-                nexty++;
-                break;
-        }
-        /* Collision detection */
-        if (this.collision(nextx, nexty) === true) {
-            snake.restart();
-            return;
-        }
-
-        /* logic of snake food */
-        if (nextx === snake.stage.food.x && nexty === snake.stage.food.y) {
-            var tail = {x: nextx, y: nexty};//hoisting variable
-            snake.stage.score++;
-            snake.initFood();
-        } else {
-            var tail = snake.stage.length.pop();
-            tail.x = nextx;
-            tail.y = nexty;
-        }
-        snake.stage.length.unshift(tail);
-
-        /* draw the snake */
-        for (let i = 0; i < snake.stage.length.length; i++) {
-            let cell = snake.stage.length[i];
-            this.drawCell(cell.x, cell.y);
-        }
-        /* draw food */
-        this.drawCell(snake.stage.food.x, snake.stage.food.y);
-        /* draw score */
-        context.fillText("SCORE: " + snake.stage.score, 5, (snake.stage.height - 5));
-    };
-    /* draw cell */
-    this.drawCell = function(x, y){
-        context.fillStyle = "rgba(148, 0, 211, 0.75)";
-        context.beginPath();
-        context.arc((
-            x * snake.stage.conf.cw + 6
-        ),
-        (y * snake.stage.conf.cw + 6), 6, 0, 2 * Math.PI, false);
-        context.fill();
-    };
-    /* collision with walls */
-    this.collision = function(nextx, nexty){
-        if (nextx === -1 || nextx === (snake.stage.width / snake.stage.conf.cw) 
-        || nexty === -1 || nexty === (snake.stage.height / snake.stage.conf.cw)){
-            return true;
-        }
-        return false;
-    }
-};
-
-/* Game */
-Game.Snake = function(elementId, conf){
-    var canvas = document.getElementById(elementId);
-    var context = canvas.getContext("2d");
-    var snake = new Component.Snake(canvas, conf);
-    var gameDraw = new Game.Draw(context, snake);
-
-    setInterval(function(){
-        gameDraw.drawStage();
-    },
-    snake.stage.conf.fps);
-};
-
-window.onload = function(){
-    var snake = new Game.Snake("stage", {
-        fps: 100,
-        size: 6
-    });
-};
+function main(){
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    snake.update();
+    snake.draw();
+    food.draw();
+    frames ++;
+    requestAnimationFrame(main);
+}
+requestAnimationFrame(main);
