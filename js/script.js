@@ -50,7 +50,7 @@ function getDistance(pointX1, pointY1, pointX2, pointY2) {
 const food = {
     x: canvas.width / 4,
     y: canvas.height / 4,
-    radius: 10,
+    radius: 20,
 
     draw: function () {
         context.beginPath();
