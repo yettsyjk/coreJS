@@ -54,7 +54,7 @@ const food = {
 
     draw: function () {
         context.beginPath();
-        context.fillStyle = "blue";
+        context.fillStyle = "rgba(252, 215, 3, 0.76)";
         context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
         context.fill();
         context.closePath();
@@ -68,7 +68,7 @@ const snake = {
         y: canvas.height / 2
     }],
     draw: function () {
-        context.fillStyle = "pink";
+        context.fillStyle = "#8403fc";
         for (let i = 0; i < this.position.length; i++) {
             let p = this.position[i];
             context.beginPath();
